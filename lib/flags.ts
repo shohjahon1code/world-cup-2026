@@ -29,6 +29,25 @@ const FLAGS: Record<string, string> = {
   Austria: "🇦🇹",
   Denmark: "🇩🇰",
   Norway: "🇳🇴",
+  Sweden: "🇸🇪",
+  Finland: "🇫🇮",
+  Iceland: "🇮🇸",
+  Ireland: "🇮🇪",
+  "Northern Ireland": "🇬🇧",
+  "Bosnia & Herzegovina": "🇧🇦",
+  "Bosnia and Herzegovina": "🇧🇦",
+  "Cape Verde": "🇨🇻",
+  Albania: "🇦🇱",
+  Bulgaria: "🇧🇬",
+  Slovenia: "🇸🇮",
+  "North Macedonia": "🇲🇰",
+  Russia: "🇷🇺",
+  Belarus: "🇧🇾",
+  Estonia: "🇪🇪",
+  Latvia: "🇱🇻",
+  Lithuania: "🇱🇹",
+  Israel: "🇮🇱",
+  Lebanon: "🇱🇧",
   Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
   Wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
   Poland: "🇵🇱",
@@ -69,6 +88,16 @@ const FLAGS: Record<string, string> = {
   "Curaçao": "🇨🇼",
 };
 
+// Knockout placeholder: "W77" (winner of match 77), "L101" (loser),
+// "1A"/"2B" (1-/2-o'rin), "3A/B/C/D" (3-o'rinlilar) — bularning bayrog'i bo'lmaydi.
+const PLACEHOLDER_RE = /^([WLwl]\d+|[123][A-L]([/][A-L])*)$/;
+
+export function isPlaceholderTeam(team: string): boolean {
+  return PLACEHOLDER_RE.test(team.trim());
+}
+
 export function flagFor(team: string): string {
-  return FLAGS[team] ?? "⚽";
+  if (FLAGS[team]) return FLAGS[team];
+  if (isPlaceholderTeam(team)) return "❓";
+  return "⚽";
 }
