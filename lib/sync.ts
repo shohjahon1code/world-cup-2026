@@ -1,0 +1,82 @@
+import { connectDB } from "./db";
+import { Match } from "./models/Match";
+import { Prediction } from "./models/Prediction";
+import { fetchSchedule, fetchLiveResults, normalizeTeam } from "./football-api";
+import { flagFor } from "./flags";
+
+/** openfootball jadvalini DB'ga yuklash (yoki yangilash). */
+export async function syncSchedule() {
+  await connectDB();
+  const schedule = await fetchSchedule();
+  let upserted = 0;
+  for (const m of schedule) {
+    await Match.updateOne(
+      { externalId: m.externalId },
+      {
+        $set: {
+          homeTeam: m.homeTeam,
+          awayTeam: m.awayTeam,
+          homeFlag: flagFor(m.homeTeam),
+          awayFlag: flagFor(m.awayTeam),
+          kickoff: m.kickoff,
+          stage: m.stage,
+          group: m.group,
+        },
+        $setOnInsert: { status: "SCHEDULED" },
+      },
+      { upsert: true }
+    );
+    upserted++;
+  }
+  return { total: schedule.length, upserted };
+}
+
+/** TheSportsDB'dan live natijalarni olib DB'ga yozish + ochkolarni qayta hisoblash. */
+export async function syncResults() {
+  await connectDB();
+  const live = await fetchLiveResults();
+  let updated = 0;
+  let scoredPredictions = 0;
+
+  for (const r of live) {
+    const home = normalizeTeam(r.homeTeam);
+    const away = normalizeTeam(r.awayTeam);
+    // Sana + jamoalar bo'yicha topish (externalId openfootball formatida)
+    const matches = await Match.find({
+      homeTeam: home,
+      awayTeam: away,
+    }).lean();
+    // Sana bo'yicha eng yaqinini olish (±1 kun)
+    const targetTime = new Date(`${r.dateEvent}T00:00:00Z`).getTime();
+    const dbMatch = matches
+      .map((m) => ({ m, diff: Math.abs(new Date(m.kickoff).getTime() - targetTime) }))
+      .sort((a, b) => a.diff - b.diff)[0]?.m;
+    if (!dbMatch) continue;
+
+    const wasFinished = dbMatch.status === "FINISHED";
+    await Match.updateOne(
+      { _id: dbMatch._id },
+      {
+        $set: {
+          status: r.status,
+          homeScore: r.homeScore,
+          awayScore: r.awayScore,
+        },
+      }
+    );
+    updated++;
+
+    // Endi yangi tugagan o'yin bo'lsa, ochkolarni hisoblaymiz
+    if (!wasFinished && r.status === "FINISHED" && r.homeScore != null && r.awayScore != null) {
+      const preds = await Prediction.find({ matchId: dbMatch._id });
+      for (const p of preds) {
+        const points = p.predHome === r.homeScore && p.predAway === r.awayScore ? 1 : 0;
+        if (p.points !== points) {
+          await Prediction.updateOne({ _id: p._id }, { $set: { points } });
+          scoredPredictions++;
+        }
+      }
+    }
+  }
+  return { liveEvents: live.length, matchesUpdated: updated, predictionsScored: scoredPredictions };
+}

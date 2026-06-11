@@ -1,65 +1,129 @@
-import Image from "next/image";
+import { Suspense } from "react";
+import { Flame, CalendarCheck, ArrowRight, Trophy } from "lucide-react";
+import Link from "next/link";
+import { MatchCard } from "@/components/MatchCard";
+import { Leaderboard } from "@/components/Leaderboard";
+import { SectionHeader } from "@/components/SectionHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { HeroNextMatch } from "@/components/HeroNextMatch";
+import {
+  getLeaderboard,
+  getMatchesForDay,
+  getNextMatch,
+  getStats,
+} from "@/lib/queries";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+export default async function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <Suspense fallback={<HomeSkeleton />}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 3600_000);
+
+  const [leaderboard, todayMatches, tomorrowMatches, nextMatch, stats] = await Promise.all([
+    safe(getLeaderboard, []),
+    safe(() => getMatchesForDay(now), []),
+    safe(() => getMatchesForDay(tomorrow), []),
+    safe(getNextMatch, null),
+    safe(getStats, { totalMatches: 0, totalPredictions: 0 }),
+  ]);
+
+  return (
+    <div className="space-y-7">
+      <div className="fade-up">
+        <HeroNextMatch
+          match={nextMatch}
+          totalMatches={stats.totalMatches}
+          totalPredictions={stats.totalPredictions}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+
+      <section className="fade-up fade-up-1">
+        <SectionHeader
+          title="Bugungi o'yinlar"
+          icon={<Flame className="h-5 w-5 text-orange-500" />}
+          hint={todayMatches.length ? `${todayMatches.length} ta` : undefined}
+        />
+        {todayMatches.length ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {todayMatches.map((m) => (
+              <MatchCard key={m.id} {...m} kickoff={new Date(m.kickoff)} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="⚽"
+            title="Bugun o'yin yo'q"
+            hint="Keyingi o'yinlar uchun jadvalga qarang"
+          />
+        )}
+      </section>
+
+      <section className="fade-up fade-up-2">
+        <SectionHeader title="Reyting" icon={<Trophy className="h-5 w-5 text-amber-500" />} />
+        {leaderboard.length ? (
+          <Leaderboard rows={leaderboard} />
+        ) : (
+          <EmptyState
+            icon="📊"
+            title="Reyting hali bo'sh"
+            hint="Birinchi o'yinlar tugaganidan keyin ochkolar hisoblanadi"
+          />
+        )}
+      </section>
+
+      <section className="fade-up fade-up-3">
+        <SectionHeader
+          title="Ertangi o'yinlar"
+          icon={<CalendarCheck className="h-5 w-5 text-blue-500" />}
+          hint={tomorrowMatches.length ? `${tomorrowMatches.length} ta` : undefined}
+        />
+        {tomorrowMatches.length ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {tomorrowMatches.map((m) => (
+              <MatchCard key={m.id} {...m} kickoff={new Date(m.kickoff)} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState icon="🗓️" title="Ertaga o'yin yo'q" />
+        )}
+        <Link
+          href="/matches"
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:text-emerald-900 group"
+        >
+          To'liq jadvalni ko'rish
+          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+        </Link>
+      </section>
+    </div>
+  );
+}
+
+async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    console.warn("[home] data fetch failed:", (e as Error).message);
+    return fallback;
+  }
+}
+
+function HomeSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="h-56 rounded-3xl bg-emerald-100/50 shimmer" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="h-28 rounded-2xl bg-slate-100 shimmer" />
+        <div className="h-28 rounded-2xl bg-slate-100 shimmer" />
+      </div>
     </div>
   );
 }
