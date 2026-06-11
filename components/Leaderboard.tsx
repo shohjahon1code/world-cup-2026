@@ -73,37 +73,54 @@ export function Leaderboard({ rows }: { rows: LeaderRow[] }) {
 function Podium({ rows }: { rows: LeaderRow[] }) {
   // O'rin: ['silver' (2), 'gold' (1), 'bronze' (3)]
   const positions = [
-    { row: rows[1], h: "h-20", grad: "from-slate-300 to-slate-200", text: "text-slate-700", rank: 2 },
+    { row: rows[1], h: "h-20", grad: "from-slate-300 to-slate-200", text: "text-slate-800", rank: 2 },
     { row: rows[0], h: "h-28", grad: "from-amber-400 to-yellow-300", text: "text-amber-900", rank: 1, crown: true },
     { row: rows[2], h: "h-16", grad: "from-orange-400 to-amber-300", text: "text-orange-900", rank: 3 },
   ];
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 text-white p-5 pitch-stripes overflow-hidden relative">
-      <div className="text-center mb-3">
-        <p className="text-[10.5px] uppercase tracking-[0.25em] text-emerald-200/80 font-bold">
+    <div
+      className="relative overflow-hidden rounded-2xl text-white p-5 shadow-xl"
+      style={{
+        background:
+          "linear-gradient(135deg, #0f172a 0%, #064e3b 50%, #0f172a 100%)",
+      }}
+    >
+      <div className="absolute inset-0 pitch-stripes opacity-40 pointer-events-none" />
+      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-amber-400/15 blur-3xl pointer-events-none" />
+      <div className="relative text-center mb-4">
+        <p className="text-[10.5px] uppercase tracking-[0.3em] text-emerald-200 font-extrabold drop-shadow">
           ★ Yetakchilar ★
         </p>
       </div>
-      <div className="grid grid-cols-3 items-end gap-2 sm:gap-3">
+      <div className="relative grid grid-cols-3 items-end gap-2 sm:gap-3">
         {positions.map((p) => (
           <Link
             key={p.row.id}
             href={`/users/${p.row.id}`}
-            className="flex flex-col items-center gap-2 group"
+            className="flex flex-col items-center gap-1.5 group"
           >
-            {p.crown && <Crown className="h-5 w-5 text-yellow-300 crown" fill="currentColor" />}
-            <div className="text-2xl sm:text-3xl">{rankEmoji(p.rank)}</div>
-            <div className="text-center min-w-0 w-full">
-              <div className="text-[11.5px] sm:text-xs font-bold truncate group-hover:text-emerald-200">
+            <div className="h-5 flex items-center">
+              {p.crown && <Crown className="h-5 w-5 text-yellow-300 crown drop-shadow" fill="currentColor" />}
+            </div>
+            <div className="text-2xl sm:text-3xl drop-shadow">{rankEmoji(p.rank)}</div>
+            <div className="text-center min-w-0 w-full px-1">
+              <div
+                className="text-[12.5px] sm:text-sm font-extrabold truncate text-white group-hover:text-amber-200 transition-colors"
+                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
+              >
                 {p.row.name}
               </div>
-              <div className="text-base sm:text-lg font-extrabold tabular-nums">
-                {p.row.points} <span className="text-[10px] font-medium opacity-70">och</span>
+              <div
+                className="text-base sm:text-lg font-black tabular-nums text-white"
+                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
+              >
+                {p.row.points}
+                <span className="text-[10px] font-bold opacity-80 ml-0.5">och</span>
               </div>
             </div>
             <div
-              className={`w-full ${p.h} rounded-t-lg bg-gradient-to-b ${p.grad} grid place-items-center ${p.text} font-extrabold text-2xl shadow-lg ring-1 ring-white/20`}
+              className={`w-full ${p.h} rounded-t-lg bg-gradient-to-b ${p.grad} grid place-items-center ${p.text} font-black text-2xl shadow-xl ring-1 ring-white/30`}
             >
               {p.rank}
             </div>

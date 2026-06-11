@@ -54,16 +54,19 @@ export async function syncResults() {
     if (!dbMatch) continue;
 
     const wasFinished = dbMatch.status === "FINISHED";
-    await Match.updateOne(
-      { _id: dbMatch._id },
-      {
-        $set: {
-          status: r.status,
-          homeScore: r.homeScore,
-          awayScore: r.awayScore,
-        },
-      }
-    );
+    // Manual qo'yilgan FINISHED + score'larni saqlash: agar API hali score bermagan
+    // bo'lsa, mavjud qiymatlarni null bilan yopib qo'ymaymiz.
+    const hasApiScore = r.homeScore != null && r.awayScore != null;
+    const update: Record<string, unknown> = {};
+    if (hasApiScore || !wasFinished) {
+      update.status = r.status;
+    }
+    if (hasApiScore) {
+      update.homeScore = r.homeScore;
+      update.awayScore = r.awayScore;
+    }
+    if (Object.keys(update).length === 0) continue;
+    await Match.updateOne({ _id: dbMatch._id }, { $set: update });
     updated++;
 
     // Endi yangi tugagan o'yin bo'lsa, ochkolarni hisoblaymiz

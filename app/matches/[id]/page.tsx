@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, MinusCircle, MapPin } from "lucide-react";
+import { ArrowLeft, CheckCircle2, MinusCircle, MapPin, Sparkles, PartyPopper, Trophy } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { getMatch, getMatchPredictions } from "@/lib/queries";
@@ -94,9 +94,40 @@ export default async function MatchDetailPage({
         </div>
       )}
 
+      {/* Winners spotlight */}
+      {isFinished && winnersCount > 0 && (
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-100 border-2 border-amber-300 px-4 py-3.5">
+          <div className="absolute -right-4 -top-4 text-6xl opacity-20 rotate-12">🎉</div>
+          <div className="relative flex items-center gap-2.5">
+            <PartyPopper className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="min-w-0">
+              <div className="text-[10.5px] uppercase tracking-[0.2em] font-extrabold text-amber-700">
+                Aniq topganlar
+              </div>
+              <div className="font-extrabold text-amber-900 truncate">
+                {predictions
+                  .filter((p) => p.points === 1)
+                  .map((p) => p.user.name)
+                  .join(" · ")}
+              </div>
+            </div>
+            <div className="ml-auto text-xs font-extrabold text-amber-700 bg-white/70 px-2 py-1 rounded-lg shrink-0">
+              +1 ochko
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Predictions */}
       <section>
-        <h2 className="text-lg font-extrabold mb-3">Do'stlarning taxminlari</h2>
+        <h2 className="text-lg font-extrabold mb-3 flex items-center justify-between">
+          <span>Do'stlarning taxminlari</span>
+          {!isFinished && (
+            <span className="text-[10.5px] uppercase tracking-wider text-slate-500 font-bold">
+              O'yin tugaganda kim aniq topgani ko'rinadi
+            </span>
+          )}
+        </h2>
         {predictions.length ? (
           <ul className="rounded-2xl bg-white border border-[var(--border)] divide-y divide-[var(--border)] overflow-hidden shadow-sm">
             {predictions.map((p) => {
@@ -105,13 +136,28 @@ export default async function MatchDetailPage({
               return (
                 <li
                   key={p.id}
-                  className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                    isWinner ? "bg-emerald-50" : ""
+                  className={`relative flex items-center gap-3 px-4 py-3 transition-colors ${
+                    isWinner
+                      ? "bg-gradient-to-r from-emerald-50 via-emerald-50/70 to-amber-50"
+                      : isLoser
+                      ? "opacity-70"
+                      : ""
                   }`}
                 >
+                  {isWinner && (
+                    <span
+                      aria-hidden
+                      className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 to-amber-500"
+                    />
+                  )}
+                  {isWinner && (
+                    <Trophy className="h-5 w-5 text-amber-500 shrink-0" fill="currentColor" />
+                  )}
                   <Link
                     href={`/users/${p.user.id}`}
-                    className="flex-1 min-w-0 font-bold truncate hover:text-emerald-700 flex items-center gap-1.5"
+                    className={`flex-1 min-w-0 font-bold truncate hover:text-emerald-700 flex items-center gap-1.5 ${
+                      isWinner ? "text-emerald-900" : ""
+                    }`}
                   >
                     {p.user.name}
                     {p.user.isAdmin && (
@@ -119,10 +165,19 @@ export default async function MatchDetailPage({
                         admin
                       </span>
                     )}
+                    {isWinner && (
+                      <span className="inline-flex items-center gap-0.5 text-[9.5px] uppercase tracking-wider bg-amber-500 text-white px-1.5 py-0.5 rounded font-extrabold">
+                        <Sparkles className="h-2.5 w-2.5" /> +1
+                      </span>
+                    )}
                   </Link>
                   <span
-                    className={`font-extrabold tabular-nums text-base sm:text-lg px-2.5 py-1 rounded-lg ${
-                      isWinner ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"
+                    className={`font-extrabold tabular-nums text-base sm:text-lg px-2.5 py-1 rounded-lg shadow-sm ${
+                      isWinner
+                        ? "bg-gradient-to-br from-emerald-500 to-emerald-700 text-white ring-2 ring-amber-400"
+                        : isLoser
+                        ? "bg-slate-100 text-slate-400 line-through decoration-2"
+                        : "bg-slate-100 text-slate-700"
                     }`}
                   >
                     {p.predHome}:{p.predAway}
