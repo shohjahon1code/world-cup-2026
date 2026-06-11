@@ -51,9 +51,11 @@ function parseKickoff(date: string, time?: string): Date {
 }
 
 function stageFromRound(round?: string, group?: string): string {
-  if (group) return `Group ${group}`;
+  if (group) {
+    // openfootball "Group A" yoki shunchaki "A" — har ikkalasini ham to'g'rilash
+    return /^group\b/i.test(group) ? group : `Group ${group}`;
+  }
   if (!round) return "Group stage";
-  // openfootball'da round = "Matchday 1" yoki "Round of 32" / "Final" h.k.
   if (/Matchday/i.test(round)) return "Group stage";
   return round;
 }
