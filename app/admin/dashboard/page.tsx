@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { RefreshCcw, LogOut, ArrowRight } from "lucide-react";
+import { RefreshCcw, LogOut, ArrowRight, Lock } from "lucide-react";
 import { isAdmin, clearAdminSession } from "@/lib/auth";
 import { getAllMatches } from "@/lib/queries";
 import { syncSchedule, syncResults } from "@/lib/sync";
@@ -107,33 +107,43 @@ export default async function AdminDashboard() {
 }
 
 function MatchList({ matches, muted }: { matches: any[]; muted?: boolean }) {
+  const now = Date.now();
   return (
     <ul className="rounded-2xl bg-white border border-[var(--border)] divide-y divide-[var(--border)] overflow-hidden">
-      {matches.map((m) => (
-        <li key={m.id}>
-          <Link
-            href={`/admin/dashboard/${m.id}`}
-            className={`flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 transition-colors ${
-              muted ? "opacity-80" : ""
-            }`}
-          >
-            <span className="text-2xl">{m.homeFlag ?? "⚽"}</span>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm sm:text-base truncate">
-                {m.homeTeam} — {m.awayTeam}
+      {matches.map((m) => {
+        const isLocked = new Date(m.kickoff).getTime() < now;
+        return (
+          <li key={m.id}>
+            <Link
+              href={`/admin/dashboard/${m.id}`}
+              className={`flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 transition-colors ${
+                muted ? "opacity-80" : ""
+              }`}
+            >
+              <span className="text-2xl">{m.homeFlag ?? "⚽"}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm sm:text-base truncate flex items-center gap-1.5">
+                  {m.homeTeam} — {m.awayTeam}
+                  {isLocked && (
+                    <Lock
+                      className="h-3.5 w-3.5 text-amber-600 shrink-0"
+                      aria-label="Taxminlar muzlatildi"
+                    />
+                  )}
+                </div>
+                <div className="text-xs text-[var(--muted)]">
+                  {m.stage} · {formatKickoff(m.kickoff)}
+                </div>
               </div>
-              <div className="text-xs text-[var(--muted)]">
-                {m.stage} · {formatKickoff(m.kickoff)}
+              <span className="text-2xl">{m.awayFlag ?? "⚽"}</span>
+              <div className="hidden sm:block">
+                <StatusBadge status={m.status} />
               </div>
-            </div>
-            <span className="text-2xl">{m.awayFlag ?? "⚽"}</span>
-            <div className="hidden sm:block">
-              <StatusBadge status={m.status} />
-            </div>
-            <ArrowRight className="h-4 w-4 text-[var(--muted)] shrink-0" />
-          </Link>
-        </li>
-      ))}
+              <ArrowRight className="h-4 w-4 text-[var(--muted)] shrink-0" />
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }
