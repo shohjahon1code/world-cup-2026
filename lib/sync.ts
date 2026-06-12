@@ -37,6 +37,7 @@ export async function syncResults() {
   const live = await fetchLiveResults();
   let updated = 0;
   let scoredPredictions = 0;
+  const unmatched: string[] = [];
 
   for (const r of live) {
     const home = normalizeTeam(r.homeTeam);
@@ -51,7 +52,10 @@ export async function syncResults() {
     const dbMatch = matches
       .map((m) => ({ m, diff: Math.abs(new Date(m.kickoff).getTime() - targetTime) }))
       .sort((a, b) => a.diff - b.diff)[0]?.m;
-    if (!dbMatch) continue;
+    if (!dbMatch) {
+      unmatched.push(`${r.homeTeam} vs ${r.awayTeam} (${r.dateEvent})`);
+      continue;
+    }
 
     const wasFinished = dbMatch.status === "FINISHED";
     // Manual qo'yilgan FINISHED + score'larni saqlash: agar API hali score bermagan
@@ -81,5 +85,13 @@ export async function syncResults() {
       }
     }
   }
-  return { liveEvents: live.length, matchesUpdated: updated, predictionsScored: scoredPredictions };
+  if (unmatched.length) {
+    console.warn("[sync] DB'da topilmagan eventlar:", unmatched);
+  }
+  return {
+    liveEvents: live.length,
+    matchesUpdated: updated,
+    predictionsScored: scoredPredictions,
+    unmatched,
+  };
 }

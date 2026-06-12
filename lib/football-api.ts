@@ -124,12 +124,13 @@ export async function fetchLiveResults(): Promise<LiveResult[]> {
   }));
 }
 
-/** TheSportsDB jamoa nomlari ba'zan boshqacha — moslashtirish. */
+/** TheSportsDB jamoa nomi -> openfootball'dagi nom (DB'da shu saqlanadi). */
 const TEAM_ALIASES: Record<string, string> = {
-  "USA": "United States",
-  "United States of America": "United States",
-  "South Korea": "Korea Republic",
-  // moslama -> openfootball'dagi nom
+  "Bosnia-Herzegovina": "Bosnia & Herzegovina",
+  // Backward-compat: TheSportsDB kelajakda FIFA-style nomlarga o'tsa ham ishlasin.
+  "Korea Republic": "South Korea",
+  "United States": "USA",
+  "United States of America": "USA",
 };
 
 export function normalizeTeam(name: string): string {
