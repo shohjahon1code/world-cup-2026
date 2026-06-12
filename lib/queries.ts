@@ -21,7 +21,9 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
       $group: {
         _id: "$userId",
         points: { $sum: "$points" },
-        exactCount: { $sum: { $cond: [{ $eq: ["$points", 1] }, 1, 0] } },
+        exactCount: {
+          $sum: { $cond: [{ $eq: ["$isExact", true] }, 1, 0] },
+        },
         totalPredictions: { $sum: 1 },
       },
     },
@@ -115,6 +117,7 @@ export async function getMatchPredictions(matchId: string) {
     predHome: p.predHome,
     predAway: p.predAway,
     points: p.points,
+    isExact: !!p.isExact,
   }));
 }
 
@@ -137,6 +140,7 @@ export async function getUserPredictions(userId: string) {
       predHome: p.predHome,
       predAway: p.predAway,
       points: p.points,
+      isExact: !!p.isExact,
       match: serializeMatch(p.matchId as any),
     }))
     .sort((a, b) => new Date(b.match.kickoff).getTime() - new Date(a.match.kickoff).getTime());

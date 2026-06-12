@@ -19,7 +19,8 @@ export default async function MatchDetailPage({
   const predictions = await getMatchPredictions(id);
   const hasScore = match.homeScore != null && match.awayScore != null;
   const isFinished = match.status === "FINISHED";
-  const winnersCount = predictions.filter((p) => p.points === 1).length;
+  const exactCount = predictions.filter((p) => p.isExact).length;
+  const outcomeOnlyCount = predictions.filter((p) => !p.isExact && p.points > 0).length;
 
   return (
     <div className="space-y-5">
@@ -88,31 +89,29 @@ export default async function MatchDetailPage({
 
       {/* Stats summary */}
       {isFinished && predictions.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Aniq topganlar" value={winnersCount} suffix={`/ ${predictions.length}`} accent="emerald" />
-          <StatCard label="Berilgan taxminlar" value={predictions.length} accent="blue" />
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <StatCard label="Aniq topdi" value={exactCount} suffix={`/ ${predictions.length}`} accent="emerald" />
+          <StatCard label="G'olibni topdi" value={outcomeOnlyCount} accent="blue" />
+          <StatCard label="Taxminlar" value={predictions.length} accent="slate" />
         </div>
       )}
 
       {/* Winners spotlight */}
-      {isFinished && winnersCount > 0 && (
+      {isFinished && exactCount > 0 && (
         <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-100 border-2 border-amber-300 px-4 py-3.5">
           <div className="absolute -right-4 -top-4 text-6xl opacity-20 rotate-12">🎉</div>
           <div className="relative flex items-center gap-2.5">
             <PartyPopper className="h-5 w-5 text-amber-600 shrink-0" />
             <div className="min-w-0">
               <div className="text-[10.5px] uppercase tracking-[0.2em] font-extrabold text-amber-700">
-                Aniq topganlar
+                Aniq hisobni topdi
               </div>
               <div className="font-extrabold text-amber-900 truncate">
                 {predictions
-                  .filter((p) => p.points === 1)
-                  .map((p) => p.user.name)
+                  .filter((p) => p.isExact)
+                  .map((p) => `${p.user.name} (+${p.points})`)
                   .join(" · ")}
               </div>
-            </div>
-            <div className="ml-auto text-xs font-extrabold text-amber-700 bg-white/70 px-2 py-1 rounded-lg shrink-0">
-              +1 ochko
             </div>
           </div>
         </section>
@@ -131,32 +130,35 @@ export default async function MatchDetailPage({
         {predictions.length ? (
           <ul className="rounded-2xl bg-white border border-[var(--border)] divide-y divide-[var(--border)] overflow-hidden shadow-sm">
             {predictions.map((p) => {
-              const isWinner = isFinished && p.points === 1;
+              const isExact = isFinished && p.isExact;
+              const isOutcome = isFinished && !p.isExact && p.points > 0;
               const isLoser = isFinished && p.points === 0;
               return (
                 <li
                   key={p.id}
                   className={`relative flex items-center gap-3 px-4 py-3 transition-colors ${
-                    isWinner
+                    isExact
                       ? "bg-gradient-to-r from-emerald-50 via-emerald-50/70 to-amber-50"
+                      : isOutcome
+                      ? "bg-emerald-50/40"
                       : isLoser
                       ? "opacity-70"
                       : ""
                   }`}
                 >
-                  {isWinner && (
+                  {isExact && (
                     <span
                       aria-hidden
                       className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 to-amber-500"
                     />
                   )}
-                  {isWinner && (
+                  {isExact && (
                     <Trophy className="h-5 w-5 text-amber-500 shrink-0" fill="currentColor" />
                   )}
                   <Link
                     href={`/users/${p.user.id}`}
                     className={`flex-1 min-w-0 font-bold truncate hover:text-emerald-700 flex items-center gap-1.5 ${
-                      isWinner ? "text-emerald-900" : ""
+                      isExact ? "text-emerald-900" : ""
                     }`}
                   >
                     {p.user.name}
@@ -165,16 +167,23 @@ export default async function MatchDetailPage({
                         admin
                       </span>
                     )}
-                    {isWinner && (
+                    {isExact && (
                       <span className="inline-flex items-center gap-0.5 text-[9.5px] uppercase tracking-wider bg-amber-500 text-white px-1.5 py-0.5 rounded font-extrabold">
-                        <Sparkles className="h-2.5 w-2.5" /> +1
+                        <Sparkles className="h-2.5 w-2.5" /> +{p.points}
+                      </span>
+                    )}
+                    {isOutcome && (
+                      <span className="inline-flex items-center gap-0.5 text-[9.5px] uppercase tracking-wider bg-emerald-600 text-white px-1.5 py-0.5 rounded font-extrabold">
+                        +1
                       </span>
                     )}
                   </Link>
                   <span
                     className={`font-extrabold tabular-nums text-base sm:text-lg px-2.5 py-1 rounded-lg shadow-sm ${
-                      isWinner
+                      isExact
                         ? "bg-gradient-to-br from-emerald-500 to-emerald-700 text-white ring-2 ring-amber-400"
+                        : isOutcome
+                        ? "bg-emerald-100 text-emerald-800"
                         : isLoser
                         ? "bg-slate-100 text-slate-400 line-through decoration-2"
                         : "bg-slate-100 text-slate-700"
@@ -183,7 +192,9 @@ export default async function MatchDetailPage({
                     {p.predHome}:{p.predAway}
                   </span>
                   <div className="w-6 grid place-items-center">
-                    {isWinner && <CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+                    {(isExact || isOutcome) && (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    )}
                     {isLoser && <MinusCircle className="h-5 w-5 text-slate-300" />}
                   </div>
                 </li>
@@ -211,13 +222,20 @@ function StatCard({
   label: string;
   value: number;
   suffix?: string;
-  accent: "emerald" | "blue";
+  accent: "emerald" | "blue" | "slate";
 }) {
   const grad =
     accent === "emerald"
       ? "from-emerald-50 to-white border-emerald-200"
-      : "from-blue-50 to-white border-blue-200";
-  const num = accent === "emerald" ? "text-emerald-700" : "text-blue-700";
+      : accent === "blue"
+      ? "from-blue-50 to-white border-blue-200"
+      : "from-slate-50 to-white border-slate-200";
+  const num =
+    accent === "emerald"
+      ? "text-emerald-700"
+      : accent === "blue"
+      ? "text-blue-700"
+      : "text-slate-700";
   return (
     <div className={`rounded-2xl bg-gradient-to-br ${grad} border px-4 py-3`}>
       <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">{label}</div>

@@ -3,8 +3,18 @@
 Do'stlar orasidagi **FIFA World Cup 2026** taxmin o'yini.
 
 - **Admin** (Shohjahon) har bir do'st uchun har o'yin natijasini taxmin qiladi.
-- **To'g'ri taxmin** = 1 ochko. Aks holda 0.
 - Chempionat oxirida **eng ko'p ochko to'plagan — g'olib**!
+
+### Ochko qoidasi
+
+| Holat | Ochko |
+|---|---|
+| Aniq hisobni topdi (masalan 3:1 → 3:1) | `home + away` (gollar yig'indisi) |
+| Aniq hisob 0:0 ni topdi | **2** |
+| Aniq topmadi, lekin g'olibni yoki durangni to'g'ri topdi | **1** |
+| Boshqa | **0** |
+
+> Misol: Braziliya 3:1 yutdi. "2:1 Braziliya" deb taxmin qilgan +1 oladi; "3:1" deb topgan +4 oladi.
 
 ## Texnologiyalar
 
@@ -81,7 +91,7 @@ npm run dev
 4. Deploy
 5. Birinchi marta admin panel'dan **"Jadval"** tugmasini bosing
 
-`vercel.json` allaqachon **cron job**'ni sozlab qo'ygan: har 5 daqiqada `/api/cron/sync` chaqiriladi (faqat live natijalarni yangilaydi, ochkolarni avto-hisoblaydi).
+`vercel.json` allaqachon **cron job**'ni sozlab qo'ygan: har 10 daqiqada `/api/cron/sync` chaqiriladi (faqat live natijalarni yangilaydi, ochkolarni avto-hisoblaydi).
 
 ## Kundalik foydalanish
 

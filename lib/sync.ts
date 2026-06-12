@@ -3,6 +3,7 @@ import { Match } from "./models/Match";
 import { Prediction } from "./models/Prediction";
 import { fetchSchedule, fetchLiveResults, normalizeTeam } from "./football-api";
 import { flagFor } from "./flags";
+import { computePoints, isExactMatch } from "./scoring";
 
 /** openfootball jadvalini DB'ga yuklash (yoki yangilash). */
 export async function syncSchedule() {
@@ -75,11 +76,14 @@ export async function syncResults() {
 
     // Endi yangi tugagan o'yin bo'lsa, ochkolarni hisoblaymiz
     if (!wasFinished && r.status === "FINISHED" && r.homeScore != null && r.awayScore != null) {
+      const actual = { home: r.homeScore, away: r.awayScore };
       const preds = await Prediction.find({ matchId: dbMatch._id });
       for (const p of preds) {
-        const points = p.predHome === r.homeScore && p.predAway === r.awayScore ? 1 : 0;
-        if (p.points !== points) {
-          await Prediction.updateOne({ _id: p._id }, { $set: { points } });
+        const pred = { home: p.predHome, away: p.predAway };
+        const points = computePoints(pred, actual);
+        const exact = isExactMatch(pred, actual);
+        if (p.points !== points || p.isExact !== exact) {
+          await Prediction.updateOne({ _id: p._id }, { $set: { points, isExact: exact } });
           scoredPredictions++;
         }
       }

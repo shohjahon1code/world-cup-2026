@@ -6,6 +6,7 @@ import "dotenv/config";
 import { connectDB } from "../lib/db";
 import { Match } from "../lib/models/Match";
 import { Prediction } from "../lib/models/Prediction";
+import { computePoints, isExactMatch } from "../lib/scoring";
 
 async function main() {
   await connectDB();
@@ -30,7 +31,10 @@ async function main() {
     match.homeScore = null;
     match.awayScore = null;
     await match.save();
-    await Prediction.updateMany({ matchId: match._id }, { $set: { points: 0 } });
+    await Prediction.updateMany(
+      { matchId: match._id },
+      { $set: { points: 0, isExact: false } }
+    );
     console.log(`↺ Tiklandi: ${home} vs ${away} → SCHEDULED`);
     process.exit(0);
   }
@@ -46,13 +50,20 @@ async function main() {
   match.awayScore = as;
   await match.save();
   const preds = await Prediction.find({ matchId: match._id });
-  let winners = 0;
+  const actual = { home: hs, away: as };
+  let exactCount = 0;
+  let totalPoints = 0;
   for (const p of preds) {
-    const points = p.predHome === hs && p.predAway === as ? 1 : 0;
-    await Prediction.updateOne({ _id: p._id }, { $set: { points } });
-    if (points === 1) winners++;
+    const pred = { home: p.predHome, away: p.predAway };
+    const points = computePoints(pred, actual);
+    const exact = isExactMatch(pred, actual);
+    await Prediction.updateOne({ _id: p._id }, { $set: { points, isExact: exact } });
+    if (exact) exactCount++;
+    totalPoints += points;
   }
-  console.log(`✓ ${home} ${hs}:${as} ${away} — FINISHED. ${winners}/${preds.length} aniq topdi.`);
+  console.log(
+    `✓ ${home} ${hs}:${as} ${away} — FINISHED. ${exactCount}/${preds.length} aniq topdi, jami ${totalPoints} ochko taqsimlandi.`
+  );
   process.exit(0);
 }
 

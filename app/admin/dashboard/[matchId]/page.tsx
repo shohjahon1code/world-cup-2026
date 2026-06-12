@@ -8,6 +8,7 @@ import { connectDB } from "@/lib/db";
 import { Prediction } from "@/lib/models/Prediction";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatKickoff } from "@/lib/utils";
+import { computePoints, isExactMatch } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,16 @@ export default async function EditPredictionsPage({
       if (!Number.isFinite(home) || !Number.isFinite(away) || home < 0 || away < 0) continue;
       // Agar o'yin tugagan bo'lsa, ochkoni darrov hisoblaymiz
       let points = 0;
+      let exact = false;
       if (match!.status === "FINISHED" && match!.homeScore != null && match!.awayScore != null) {
-        points = home === match!.homeScore && away === match!.awayScore ? 1 : 0;
+        const pred = { home, away };
+        const actual = { home: match!.homeScore, away: match!.awayScore };
+        points = computePoints(pred, actual);
+        exact = isExactMatch(pred, actual);
       }
       await Prediction.updateOne(
         { userId: uid, matchId },
-        { $set: { predHome: home, predAway: away, points } },
+        { $set: { predHome: home, predAway: away, points, isExact: exact } },
         { upsert: true }
       );
     }
@@ -107,10 +112,14 @@ export default async function EditPredictionsPage({
                   {existing && match.status === "FINISHED" && (
                     <div
                       className={`text-[11px] font-semibold ${
-                        existing.points === 1 ? "text-emerald-700" : "text-slate-400"
+                        existing.points > 0 ? "text-emerald-700" : "text-slate-400"
                       }`}
                     >
-                      {existing.points === 1 ? "✓ aniq topdi (+1)" : "✗ topa olmadi"}
+                      {existing.isExact
+                        ? `✓ aniq topdi (+${existing.points})`
+                        : existing.points > 0
+                        ? "✓ g'olibni topdi (+1)"
+                        : "✗ topa olmadi"}
                     </div>
                   )}
                 </div>

@@ -7,6 +7,7 @@ const PredictionSchema = new Schema(
     predHome: { type: Number, required: true, min: 0 },
     predAway: { type: Number, required: true, min: 0 },
     points: { type: Number, default: 0 },
+    isExact: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

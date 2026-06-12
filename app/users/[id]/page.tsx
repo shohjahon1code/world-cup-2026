@@ -21,7 +21,7 @@ export default async function UserPage({
     getLeaderboard(),
   ]);
   const totalPoints = predictions.reduce((sum, p) => sum + p.points, 0);
-  const exact = predictions.filter((p) => p.points === 1).length;
+  const exact = predictions.filter((p) => p.isExact).length;
   const rank = leaderboard.findIndex((r) => r.id === id) + 1;
   const isLeader = rank === 1 && totalPoints > 0;
 
@@ -72,13 +72,19 @@ export default async function UserPage({
           <ul className="space-y-2.5">
             {predictions.map((p) => {
               const isFinished = p.match.status === "FINISHED";
-              const isWin = p.points === 1;
+              const isExact = p.isExact;
+              const isOutcome = !p.isExact && p.points > 0;
+              const isWin = isExact || isOutcome;
               return (
                 <li key={p.id}>
                   <Link
                     href={`/matches/${p.match.id}`}
                     className={`card-hover block rounded-2xl bg-white border ${
-                      isWin ? "border-emerald-300 ring-1 ring-emerald-100" : "border-[var(--border)]"
+                      isExact
+                        ? "border-amber-300 ring-1 ring-amber-100"
+                        : isOutcome
+                        ? "border-emerald-300 ring-1 ring-emerald-100"
+                        : "border-[var(--border)]"
                     } px-4 py-3`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-2">
@@ -108,11 +114,26 @@ export default async function UserPage({
                             <span className="text-slate-300">→</span>
                             <span
                               className={`font-extrabold tabular-nums px-2 py-0.5 rounded-md ${
-                                isWin ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
+                                isExact
+                                  ? "bg-amber-500 text-white"
+                                  : isOutcome
+                                  ? "bg-emerald-600 text-white"
+                                  : "bg-slate-100 text-slate-600"
                               }`}
                             >
                               {p.match.homeScore}:{p.match.awayScore}
                             </span>
+                            {isWin && (
+                              <span
+                                className={`text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                  isExact
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-emerald-100 text-emerald-800"
+                                }`}
+                              >
+                                +{p.points}
+                              </span>
+                            )}
                             {isWin && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                           </>
                         )}
