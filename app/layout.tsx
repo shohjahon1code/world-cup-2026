@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Trophy, Home, CalendarDays, ShieldCheck } from "lucide-react";
+import { AutoSync } from "@/components/AutoSync";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="uz" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="min-h-full flex flex-col">
+        <AutoSync />
         <header className="sticky top-0 z-30 border-b border-[var(--border)] glass">
           <div className="mx-auto max-w-3xl px-4 h-14 flex items-center justify-between gap-3">
             <Link href="/" className="flex items-center gap-2 font-extrabold text-[15px] group">
