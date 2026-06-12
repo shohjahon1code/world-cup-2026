@@ -6,12 +6,13 @@ export type MatchStatus = (typeof MATCH_STATUSES)[number];
 const MatchSchema = new Schema(
   {
     externalId: { type: String, required: true, unique: true, index: true },
+    num: { type: Number, default: null, index: true }, // openfootball "num" (1..104) — bracket pairing uchun
     homeTeam: { type: String, required: true },
     awayTeam: { type: String, required: true },
     homeFlag: { type: String, default: null },
     awayFlag: { type: String, default: null },
     kickoff: { type: Date, required: true, index: true },
-    stage: { type: String, required: true }, // "Group A", "Round of 32", ...
+    stage: { type: String, required: true }, // "Group A", "Round of 32", "Final", ...
     group: { type: String, default: null },
     status: { type: String, enum: MATCH_STATUSES, default: "SCHEDULED", index: true },
     homeScore: { type: Number, default: null },

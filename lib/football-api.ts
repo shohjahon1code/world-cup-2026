@@ -11,6 +11,7 @@ const WC_LEAGUE_ID = "4429";
 
 export type ScheduleMatch = {
   externalId: string; // openfootball stable hash
+  num: number | null;
   homeTeam: string;
   awayTeam: string;
   kickoff: Date;
@@ -20,6 +21,7 @@ export type ScheduleMatch = {
 
 type OpenfootballMatch = {
   round?: string;
+  num?: number;
   date: string; // "2026-06-11"
   time?: string; // "13:00 UTC-6"
   team1: string | { name: string };
@@ -57,7 +59,23 @@ function stageFromRound(round?: string, group?: string): string {
   }
   if (!round) return "Group stage";
   if (/Matchday/i.test(round)) return "Group stage";
+  // Knockout: "Round of 32", "Round of 16", "Quarter-final", "Semi-final",
+  // "Match for third place", "Final"
   return round;
+}
+
+/** Knockout bo'lib turg'un round nomlarini bracket'da pozitsiya tartibi bilan qaytaradi. */
+export const KNOCKOUT_ORDER = [
+  "Round of 32",
+  "Round of 16",
+  "Quarter-final",
+  "Semi-final",
+  "Match for third place",
+  "Final",
+] as const;
+
+export function isKnockoutStage(stage: string): boolean {
+  return (KNOCKOUT_ORDER as readonly string[]).includes(stage);
 }
 
 /** Full WC2026 schedule (80 matches) — openfootball'dan. */
@@ -68,8 +86,12 @@ export async function fetchSchedule(): Promise<ScheduleMatch[]> {
   return data.matches.map((m, idx) => {
     const home = teamName(m.team1);
     const away = teamName(m.team2);
+    // num openfootball'ning turg'un identifikatori (1..104). Knockout
+    // jamoa nomlari placeholder'dan real nomga o'tganda ham id o'zgarmaydi.
+    const externalId = m.num != null ? `of-${m.num}` : `of-d-${m.date}-${idx}`;
     return {
-      externalId: `of-${m.date}-${home}-${away}-${idx}`.replace(/\s+/g, "_"),
+      externalId,
+      num: m.num ?? null,
       homeTeam: home,
       awayTeam: away,
       kickoff: parseKickoff(m.date, m.time),

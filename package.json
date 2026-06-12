@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "seed": "tsx scripts/seed.ts",
-    "sync:matches": "tsx scripts/sync-matches.ts"
+    "sync:matches": "tsx scripts/sync-matches.ts",
+    "migrate:ids": "tsx scripts/migrate-external-ids.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

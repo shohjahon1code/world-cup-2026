@@ -160,6 +160,7 @@ function serializeMatch(m: any) {
   return {
     id: String(m._id),
     externalId: m.externalId,
+    num: m.num ?? null,
     homeTeam: m.homeTeam,
     awayTeam: m.awayTeam,
     homeFlag: m.homeFlag ?? null,
@@ -172,3 +173,5 @@ function serializeMatch(m: any) {
     awayScore: m.awayScore ?? null,
   };
 }
+
+export type SerializedMatch = ReturnType<typeof serializeMatch>;

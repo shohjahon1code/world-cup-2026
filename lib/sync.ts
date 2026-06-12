@@ -15,6 +15,7 @@ export async function syncSchedule() {
       { externalId: m.externalId },
       {
         $set: {
+          num: m.num,
           homeTeam: m.homeTeam,
           awayTeam: m.awayTeam,
           homeFlag: flagFor(m.homeTeam),
