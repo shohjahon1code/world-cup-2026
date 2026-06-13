@@ -35,8 +35,8 @@ export function HeroNextMatch({ match, totalMatches, totalPredictions }: Props) 
           Do'stlar Chempionati
         </h1>
         <p className="mt-1 text-sm sm:text-[15px] text-emerald-50/95 max-w-md">
-          Aniq hisobni topdingmi — <b>gollar yig'indisi</b> (0:0 → 2). Faqat
-          g'olibni yoki durangni topgan ham — <b>+1</b>. Yakunda eng ko'p ochko — chempion!
+          G'olib/durangni topdingmi — <b>+1</b>. Hisobni aniq topdingmi —
+          ustiga <b>gollar yig'indisi</b> (aniq 0:0 → 2). Yakunda eng ko'p ochko — chempion!
         </p>
 
         {match && (

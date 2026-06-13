@@ -7,14 +7,19 @@ Do'stlar orasidagi **FIFA World Cup 2026** taxmin o'yini.
 
 ### Ochko qoidasi
 
+Qoidalar bir-birini bekor qilmaydi — **qo'shiladi**:
+- **A) G'olibni yoki durangni to'g'ri topganga** → +1 ochko
+- **B) Hisobni aniq topganga** → +(home + away) qo'shimcha ochko
+- **Maxsus:** aniq **0:0** → 2 ochko (kam uchraydi)
+
 | Holat | Ochko |
 |---|---|
-| Aniq hisobni topdi (masalan 3:1 → 3:1) | `home + away` (gollar yig'indisi) |
-| Aniq hisob 0:0 ni topdi | **2** |
+| Aniq hisob **0:0** ni topdi | **2** (maxsus) |
+| Aniq hisobni topdi (0:0 emas) | `home + away + 1` |
 | Aniq topmadi, lekin g'olibni yoki durangni to'g'ri topdi | **1** |
 | Boshqa | **0** |
 
-> Misol: Braziliya 3:1 yutdi. "2:1 Braziliya" deb taxmin qilgan +1 oladi; "3:1" deb topgan +4 oladi.
+> Misollar: 2:3 ni aniq → **6** (2+3+1). 2:3 da "0:1" deb taxmin qilgan → **1** (g'olibni topdi). 3:1 ni aniq → **5** (3+1+1). 0:0 ni aniq → **2**. 1:1 da "0:0" deb taxmin qilgan → **1** (durangni topdi).
 
 ## Texnologiyalar
 
