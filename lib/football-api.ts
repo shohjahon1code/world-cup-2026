@@ -17,6 +17,9 @@ export type ScheduleMatch = {
   kickoff: Date;
   stage: string;
   group: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  finished: boolean;
 };
 
 type OpenfootballMatch = {
@@ -27,6 +30,7 @@ type OpenfootballMatch = {
   team1: string | { name: string };
   team2: string | { name: string };
   group?: string;
+  score?: { ft?: [number, number]; ht?: [number, number] } | null;
 };
 
 function teamName(t: OpenfootballMatch["team1"]): string {
@@ -80,7 +84,7 @@ export function isKnockoutStage(stage: string): boolean {
 
 /** Full WC2026 schedule (80 matches) — openfootball'dan. */
 export async function fetchSchedule(): Promise<ScheduleMatch[]> {
-  const res = await fetch(OPENFOOTBALL_URL, { next: { revalidate: 3600 } });
+  const res = await fetch(OPENFOOTBALL_URL, { next: { revalidate: 300 } });
   if (!res.ok) throw new Error(`openfootball fetch failed: ${res.status}`);
   const data = (await res.json()) as { matches: OpenfootballMatch[] };
   return data.matches.map((m, idx) => {
@@ -88,7 +92,14 @@ export async function fetchSchedule(): Promise<ScheduleMatch[]> {
     const away = teamName(m.team2);
     // num openfootball'ning turg'un identifikatori (1..104). Knockout
     // jamoa nomlari placeholder'dan real nomga o'tganda ham id o'zgarmaydi.
-    const externalId = m.num != null ? `of-${m.num}` : `of-d-${m.date}-${idx}`;
+    // Group stage uchun num bo'lmaydi — date+jamoa nomlari turg'un kalit beradi
+    // (har bir juftlik bir kunda bir marta o'ynaydi).
+    const slug = (s: string) => s.replace(/\s+/g, "_");
+    const externalId =
+      m.num != null ? `of-${m.num}` : `of-g-${m.date}-${slug(home)}-${slug(away)}`;
+    void idx;
+    const ft = m.score?.ft;
+    const hasFt = Array.isArray(ft) && ft.length === 2;
     return {
       externalId,
       num: m.num ?? null,
@@ -97,6 +108,9 @@ export async function fetchSchedule(): Promise<ScheduleMatch[]> {
       kickoff: parseKickoff(m.date, m.time),
       stage: stageFromRound(m.round, m.group),
       group: m.group ?? null,
+      homeScore: hasFt ? ft[0] : null,
+      awayScore: hasFt ? ft[1] : null,
+      finished: hasFt,
     };
   });
 }
@@ -129,14 +143,40 @@ function mapStatus(s: string | null, postponed?: string | null): LiveResult["sta
   return "SCHEDULED";
 }
 
-/** TheSportsDB'dan WC2026 hozirgi mavsumi event ro'yxati (live skorlar bilan). */
+/** TheSportsDB'dan WC2026 event ro'yxati (live skorlar bilan).
+ *
+ * Bepul kalit (`SPORTSDB_KEY=3`)'da `eventsseason.php` faqat bir nechta yakuniy
+ * o'yinni qaytaradi va LIVE/yangi tugagan o'yinlarni o'tkazib yuboradi. Shu uchun
+ * biz uchta endpointni ham birga so'raymiz va idEvent bo'yicha dedup qilamiz:
+ *   1) eventsseason  — to'liq mavsum (sekin yangilanadi)
+ *   2) eventspastleague — yaqin o'tmish + hozir LIVE
+ *   3) eventsnextleague — yaqin kelajak
+ */
 export async function fetchLiveResults(): Promise<LiveResult[]> {
-  const url = `${SPORTSDB_BASE}/eventsseason.php?id=${WC_LEAGUE_ID}&s=2026`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) throw new Error(`sportsdb fetch failed: ${res.status}`);
-  const data = (await res.json()) as { events: SportsDBEvent[] | null };
-  if (!data.events) return [];
-  return data.events.map((e) => ({
+  const endpoints = [
+    `${SPORTSDB_BASE}/eventsseason.php?id=${WC_LEAGUE_ID}&s=2026`,
+    `${SPORTSDB_BASE}/eventspastleague.php?id=${WC_LEAGUE_ID}`,
+    `${SPORTSDB_BASE}/eventsnextleague.php?id=${WC_LEAGUE_ID}`,
+  ];
+  const results = await Promise.allSettled(
+    endpoints.map((u) => fetch(u, { next: { revalidate: 60 } }))
+  );
+  // idEvent bo'yicha dedup — keyingi (yangiroq) endpointlardan kelgan yozuv
+  // oldingisini almashtirib qo'yadi (past/next API'larida yangiroq status bo'ladi).
+  const byId = new Map<string, SportsDBEvent>();
+  for (const r of results) {
+    if (r.status !== "fulfilled" || !r.value.ok) continue;
+    let data: { events: SportsDBEvent[] | null };
+    try {
+      data = (await r.value.json()) as { events: SportsDBEvent[] | null };
+    } catch {
+      continue;
+    }
+    for (const e of data.events ?? []) {
+      byId.set(e.idEvent, e);
+    }
+  }
+  return Array.from(byId.values()).map((e) => ({
     homeTeam: e.strHomeTeam,
     awayTeam: e.strAwayTeam,
     dateEvent: e.dateEvent,

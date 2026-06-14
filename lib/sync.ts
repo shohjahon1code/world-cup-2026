@@ -10,6 +10,8 @@ export async function syncSchedule() {
   await connectDB();
   const schedule = await fetchSchedule();
   let upserted = 0;
+  let finishedFromSchedule = 0;
+  let scoredPredictions = 0;
   for (const m of schedule) {
     await Match.updateOne(
       { externalId: m.externalId },
@@ -29,8 +31,34 @@ export async function syncSchedule() {
       { upsert: true }
     );
     upserted++;
+
+    // openfootball'da skor allaqachon yozilgan bo'lsa (TheSportsDB sekin yangilanadi —
+    // shu fallback bo'ladi). Faqat hali FINISHED bo'lmagan o'yinlarga tegamiz.
+    if (m.finished && m.homeScore != null && m.awayScore != null) {
+      const dbMatch = await Match.findOne({ externalId: m.externalId }).lean();
+      if (!dbMatch || dbMatch.status !== "FINISHED") {
+        await Match.updateOne(
+          { externalId: m.externalId },
+          { $set: { status: "FINISHED", homeScore: m.homeScore, awayScore: m.awayScore } }
+        );
+        finishedFromSchedule++;
+        if (dbMatch) {
+          const actual = { home: m.homeScore, away: m.awayScore };
+          const preds = await Prediction.find({ matchId: dbMatch._id });
+          for (const p of preds) {
+            const pred = { home: p.predHome, away: p.predAway };
+            const points = computePoints(pred, actual);
+            const exact = isExactMatch(pred, actual);
+            if (p.points !== points || p.isExact !== exact) {
+              await Prediction.updateOne({ _id: p._id }, { $set: { points, isExact: exact } });
+              scoredPredictions++;
+            }
+          }
+        }
+      }
+    }
   }
-  return { total: schedule.length, upserted };
+  return { total: schedule.length, upserted, finishedFromSchedule, scoredPredictions };
 }
 
 /** TheSportsDB'dan live natijalarni olib DB'ga yozish + ochkolarni qayta hisoblash. */

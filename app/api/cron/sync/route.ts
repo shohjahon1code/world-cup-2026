@@ -13,9 +13,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
-    const url = new URL(req.url);
-    const includeSchedule = url.searchParams.get("schedule") === "1";
-    const schedule = includeSchedule ? await syncSchedule() : null;
+    // syncSchedule + syncResults — ikkalasi ham har safar.
+    // syncSchedule openfootball'dan score bo'lsa avto FINISHED qiladi va ochkolarni
+    // hisoblaydi (TheSportsDB sekin bo'lsa fallback). syncResults TheSportsDB
+    // (uchta endpoint) — LIVE/FINISHED o'yinlarni yangilaydi. externalId turg'un
+    // bo'lgani uchun dublikat yaratilmaydi.
+    const schedule = await syncSchedule();
     const results = await syncResults();
     return NextResponse.json({ ok: true, schedule, results });
   } catch (e) {

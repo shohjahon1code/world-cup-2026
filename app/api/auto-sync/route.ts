@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { syncResults } from "@/lib/sync";
+import { syncResults, syncSchedule } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,18 @@ export async function GET() {
   }
 
   try {
-    cache.inFlight = syncResults();
+    // schedule + results birga: openfootball'da score bo'lsa avto FINISHED,
+    // TheSportsDB'dan LIVE/FINISHED ham olamiz. externalId turg'un bo'lgani
+    // uchun dublikat yaratilmaydi.
+    cache.inFlight = (async () => {
+      const schedule = await syncSchedule();
+      const results = await syncResults();
+      // AutoSync client komponenti `matchesUpdated > 0` bo'lsa router refresh
+      // qiladi — schedule fallback'i ham hisoblansin.
+      const matchesUpdated =
+        (results.matchesUpdated ?? 0) + (schedule.finishedFromSchedule ?? 0);
+      return { schedule, results, matchesUpdated };
+    })();
     const result = await cache.inFlight;
     cache.lastRun = Date.now();
     cache.lastResult = result;
