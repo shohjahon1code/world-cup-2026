@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncSchedule, syncResults } from "@/lib/sync";
+import { syncSchedule, syncResults, finalizeStaleLive } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
-// Vercel Cron: har 5 daqiqada chaqiriladi (vercel.json).
+// Cron: har 1 daqiqada chaqiriladi (vercel.json / serverdagi crontab).
 // Manual chaqirish:  curl -H "Authorization: Bearer $CRON_SECRET" /api/cron/sync
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
     // bo'lgani uchun dublikat yaratilmaydi.
     const schedule = await syncSchedule();
     const results = await syncResults();
-    return NextResponse.json({ ok: true, schedule, results });
+    // Xavfsizlik to'ri: API qotirib qo'ygan/tashlab ketgan LIVE o'yinlarni tozalash.
+    const swept = await finalizeStaleLive();
+    return NextResponse.json({ ok: true, schedule, results, swept });
   } catch (e) {
     const msg = (e as Error).message;
     console.error("[cron/sync]", msg);

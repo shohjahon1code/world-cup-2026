@@ -3,12 +3,12 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-const INTERVAL_MS = 5 * 60 * 1000; // 5 daqiqa
+const INTERVAL_MS = 60 * 1000; // 1 daqiqa
 
 /**
- * Sayt ochilganda foydalanuvchi taraf har 5 daqiqada /api/auto-sync'ni
+ * Sayt ochilganda foydalanuvchi taraf har 1 daqiqada /api/auto-sync'ni
  * chaqiradi. Backend o'zi rate-limit qiladi — ko'p tab ochilsa ham
- * 5 daqiqada bir martadan ortiq haqiqiy sync ishlamaydi.
+ * 1 daqiqada bir martadan ortiq haqiqiy sync ishlamaydi.
  */
 export function AutoSync() {
   const router = useRouter();

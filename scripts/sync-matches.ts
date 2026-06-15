@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { syncSchedule, syncResults } from "../lib/sync";
+import { syncSchedule, syncResults, finalizeStaleLive } from "../lib/sync";
 
 async function main() {
   console.log("→ Schedule sync...");
@@ -11,6 +11,10 @@ async function main() {
   console.log(
     `  ✓ ${b.matchesUpdated} matches updated, ${b.predictionsScored} predictions scored (live events: ${b.liveEvents})`
   );
+
+  console.log("→ Stale LIVE sweep...");
+  const c = await finalizeStaleLive();
+  console.log(`  ✓ ${c.finalized} stale matches finalized, ${c.scoredPredictions} predictions scored`);
 
   process.exit(0);
 }

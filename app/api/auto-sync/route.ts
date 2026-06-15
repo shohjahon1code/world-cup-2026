@@ -3,8 +3,8 @@ import { syncResults, syncSchedule } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
-// 5 daqiqada bir martadan ko'p ishlamasin (process xotirasida)
-const INTERVAL_MS = 5 * 60 * 1000;
+// 1 daqiqada bir martadan ko'p ishlamasin (process xotirasida)
+const INTERVAL_MS = 60 * 1000;
 type Cache = {
   lastRun: number;
   lastResult: unknown;
