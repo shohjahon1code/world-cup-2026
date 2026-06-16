@@ -6,6 +6,8 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { HeroNextMatch } from "@/components/HeroNextMatch";
+import { CopyMatchesButton } from "@/components/CopyMatchesButton";
+import { formatDateOnly } from "@/lib/utils";
 import {
   getLeaderboard,
   getMatchesForDay,
@@ -53,11 +55,23 @@ async function HomeContent() {
           hint={todayMatches.length ? `${todayMatches.length} ta` : undefined}
         />
         {todayMatches.length ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {todayMatches.map((m) => (
-              <MatchCard key={m.id} {...m} kickoff={new Date(m.kickoff)} />
-            ))}
-          </div>
+          <>
+            <div className="mb-3 flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-[12px] text-slate-500">
+                Taxminingizni yozib adminga yuboring 👇
+              </p>
+              <CopyMatchesButton
+                matches={todayMatches}
+                dateLabel={formatDateOnly(now)}
+                title="Bugungi o'yinlar"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {todayMatches.map((m) => (
+                <MatchCard key={m.id} {...m} kickoff={new Date(m.kickoff)} />
+              ))}
+            </div>
+          </>
         ) : (
           <EmptyState
             icon="⚽"
@@ -87,11 +101,22 @@ async function HomeContent() {
           hint={tomorrowMatches.length ? `${tomorrowMatches.length} ta` : undefined}
         />
         {tomorrowMatches.length ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {tomorrowMatches.map((m) => (
-              <MatchCard key={m.id} {...m} kickoff={new Date(m.kickoff)} />
-            ))}
-          </div>
+          <>
+            <div className="mb-3 flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-[12px] text-slate-500">
+                Taxminingizni yozib adminga yuboring 👇
+              </p>
+              <CopyMatchesButton
+                matches={tomorrowMatches}
+                dateLabel={formatDateOnly(tomorrow)}
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {tomorrowMatches.map((m) => (
+                <MatchCard key={m.id} {...m} kickoff={new Date(m.kickoff)} />
+              ))}
+            </div>
+          </>
         ) : (
           <EmptyState icon="🗓️" title="Ertaga o'yin yo'q" />
         )}
