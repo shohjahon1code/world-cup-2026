@@ -109,6 +109,11 @@ export async function syncResults() {
     // Manual qo'yilgan FINISHED + score'larni saqlash: agar API hali score bermagan
     // bo'lsa, mavjud qiymatlarni null bilan yopib qo'ymaymiz.
     const hasApiScore = r.homeScore != null && r.awayScore != null;
+    // Skor o'zgardimi? Tugagan o'yinda ham kech gol bilan skor yangilanishi mumkin —
+    // u holda ochkolarni eski skor bo'yicha qoldirib bo'lmaydi, qayta hisoblash kerak.
+    const scoreChanged =
+      hasApiScore &&
+      (dbMatch.homeScore !== r.homeScore || dbMatch.awayScore !== r.awayScore);
 
     // TheSportsDB bepul kalitida `strStatus` gohida "2H"da qotib qoladi: o'yin
     // allaqachon tugagan bo'lsa ham LIVE ko'rsatib turaveradi. Kickoff'dan 140
@@ -133,11 +138,13 @@ export async function syncResults() {
     await Match.updateOne({ _id: dbMatch._id }, { $set: update });
     updated++;
 
-    // Endi yangi tugagan o'yin bo'lsa, ochkolarni hisoblaymiz
-    if (!wasFinished && effectiveStatus === "FINISHED" && r.homeScore != null && r.awayScore != null) {
+    // Ochkolarni hisoblaymiz: (a) yangi tugagan o'yin, yoki (b) allaqachon tugagan
+    // o'yinning skori o'zgargan bo'lsa (kech gol/tuzatish) — eski ochkolar yangilanadi.
+    const finishedNow = wasFinished || effectiveStatus === "FINISHED";
+    if (finishedNow && hasApiScore && (!wasFinished || scoreChanged)) {
       scoredPredictions += await scorePredictions(dbMatch._id, {
-        home: r.homeScore,
-        away: r.awayScore,
+        home: r.homeScore!,
+        away: r.awayScore!,
       });
     }
   }
