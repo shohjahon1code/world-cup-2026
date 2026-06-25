@@ -57,11 +57,19 @@ export async function syncSchedule() {
     );
     upserted++;
 
-    // openfootball'da skor allaqachon yozilgan bo'lsa (TheSportsDB sekin yangilanadi —
-    // shu fallback bo'ladi). Faqat hali FINISHED bo'lmagan o'yinlarga tegamiz.
+    // openfootball'da skor yozilgan bo'lsa (yakuniy skor uchun ISHONCHLI manba).
+    // O'yin hali tugamagan bo'lsa — tugatamiz. Allaqachon FINISHED bo'lsa-yu skor
+    // farq qilsa — to'g'rilaymiz: TheSportsDB bepul kaliti o'yinni erta/noto'g'ri
+    // (masalan "2H"da qotgan) skorda muzlatib qo'yishi mumkin va keyin eventni
+    // live API'dan tashlab yuboradi, shu sababli syncResults uni boshqa
+    // tuzata olmaydi. openfootball esa har doim yakuniy skorni beradi.
     if (m.finished && m.homeScore != null && m.awayScore != null) {
       const dbMatch = await Match.findOne({ externalId: m.externalId }).lean();
-      if (!dbMatch || dbMatch.status !== "FINISHED") {
+      const notFinished = !dbMatch || dbMatch.status !== "FINISHED";
+      const scoreDiffers =
+        dbMatch != null &&
+        (dbMatch.homeScore !== m.homeScore || dbMatch.awayScore !== m.awayScore);
+      if (notFinished || scoreDiffers) {
         await Match.updateOne(
           { externalId: m.externalId },
           { $set: { status: "FINISHED", homeScore: m.homeScore, awayScore: m.awayScore } }
