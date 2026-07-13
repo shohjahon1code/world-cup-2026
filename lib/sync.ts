@@ -117,11 +117,6 @@ export async function syncResults() {
     // Manual qo'yilgan FINISHED + score'larni saqlash: agar API hali score bermagan
     // bo'lsa, mavjud qiymatlarni null bilan yopib qo'ymaymiz.
     const hasApiScore = r.homeScore != null && r.awayScore != null;
-    // Skor o'zgardimi? Tugagan o'yinda ham kech gol bilan skor yangilanishi mumkin —
-    // u holda ochkolarni eski skor bo'yicha qoldirib bo'lmaydi, qayta hisoblash kerak.
-    const scoreChanged =
-      hasApiScore &&
-      (dbMatch.homeScore !== r.homeScore || dbMatch.awayScore !== r.awayScore);
 
     // TheSportsDB bepul kalitida `strStatus` gohida "2H"da qotib qoladi: o'yin
     // allaqachon tugagan bo'lsa ham LIVE ko'rsatib turaveradi. Kickoff'dan 140
@@ -132,24 +127,27 @@ export async function syncResults() {
       r.status === "LIVE" && hasApiScore && minutesSinceKickoff > MATCH_DURATION_MIN;
     const effectiveStatus = staleLive ? "FINISHED" : r.status;
 
-    const update: Record<string, unknown> = {};
-    // FINISHED — yakuniy holat: o'yinni hech qachon LIVE/SCHEDULEDga qaytarmaymiz
-    // (API statusi qotib qolsa ham). Faqat hali tugamagan o'yin statusini yangilaymiz.
-    if (!wasFinished) {
-      update.status = effectiveStatus;
-    }
+    // FINISHED o'yin skoriga TEGMAYMIZ. TheSportsDB knockout'da qo'shimcha vaqt
+    // gollarini ham qo'shib beradi (mas. Argentina 3:1 Shveytsariya a.e.t.), bizda
+    // esa taxminlar ASOSIY VAQT bo'yicha hisoblanadi. Tugagan o'yinning yakuniy
+    // (90 daqiqalik) skori uchun yagona ishonchli manba — openfootball `ft`
+    // (syncSchedule); kech gol/tuzatishlarni ham o'sha yerdan oladi. Aks holda
+    // har daqiqada syncSchedule 1:1 yozib, syncResults 3:1 qaytarib flip-flop
+    // bo'ladi.
+    if (wasFinished) continue;
+
+    const update: Record<string, unknown> = { status: effectiveStatus };
     if (hasApiScore) {
       update.homeScore = r.homeScore;
       update.awayScore = r.awayScore;
     }
-    if (Object.keys(update).length === 0) continue;
     await Match.updateOne({ _id: dbMatch._id }, { $set: update });
     updated++;
 
-    // Ochkolarni hisoblaymiz: (a) yangi tugagan o'yin, yoki (b) allaqachon tugagan
-    // o'yinning skori o'zgargan bo'lsa (kech gol/tuzatish) — eski ochkolar yangilanadi.
-    const finishedNow = wasFinished || effectiveStatus === "FINISHED";
-    if (finishedNow && hasApiScore && (!wasFinished || scoreChanged)) {
+    // Yangi tugagan o'yin — ochkolarni hisoblaymiz. AET bo'lsa bu skor vaqtincha
+    // qo'shimcha vaqtni o'z ichiga oladi; openfootball yangilanishi bilan
+    // syncSchedule uni asosiy vaqt skoriga tuzatib, qayta hisoblaydi.
+    if (effectiveStatus === "FINISHED" && hasApiScore) {
       scoredPredictions += await scorePredictions(dbMatch._id, {
         home: r.homeScore!,
         away: r.awayScore!,
